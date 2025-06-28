@@ -12,18 +12,23 @@ import math
 board = Arduino('COM3')
 
 # Define Servo
-thumbPin = board.digital[9]
-pointerPin = board.digital[10]
-middlePin = board.digital[11]
-ringPin = board.digital[12]
-pinkyPin = board.digital[13]
+thumbPin = board.digital[8]
+pointerPin = board.digital[9]
+middlePin = board.digital[10]
+ringPin = board.digital[11]
+pinkyPin = board.digital[12]
+thumbJoint = board.digital[13]
+
+rotationPin = board.digital[3]
 
 # Set pins to SERVO
 thumbPin.mode = SERVO
+thumbJoint.mode = SERVO
 pointerPin.mode = SERVO
 middlePin.mode = SERVO
 ringPin.mode = SERVO
 pinkyPin.mode = SERVO
+rotationPin.mode = SERVO
 
 # Set Servo to 0
 thumbPin.write(0)
@@ -31,6 +36,9 @@ pointerPin.write(0)
 middlePin.write(0)
 ringPin.write(0)
 pinkyPin.write(0)
+#Thumb joint servo should never be out of the interval 180-90 degrees !!!
+thumbJoint.write(180)
+rotationPin.write(0)
 
 # Define MediaPipe Hands
 mpHands = mp.solutions.hands
@@ -88,16 +96,16 @@ def calculate_hand_rotation(landmarks):
     # Calculate vectors
     # Vector from wrist to middle finger base
     palm_vector = np.array([
-        middle_mcp['x_norm'] - wrist['x_norm'],
-        middle_mcp['y_norm'] - wrist['y_norm'],
-        middle_mcp['z_norm'] - wrist['z_norm']
+        middle_mcp.x - wrist.x,
+        middle_mcp.y - wrist.y,
+        middle_mcp.z - wrist.z
     ])
     
     # Vector across the knuckles (index to pinky)
     knuckle_vector = np.array([
-        pinky_mcp['x_norm'] - index_mcp['x_norm'],
-        pinky_mcp['y_norm'] - index_mcp['y_norm'], 
-        pinky_mcp['z_norm'] - index_mcp['z_norm']
+        pinky_mcp.x - index_mcp.x,
+        pinky_mcp.y - index_mcp.y, 
+        pinky_mcp.z - index_mcp.z
     ])
     
     # Calculate normal to palm plane using cross product
@@ -165,6 +173,18 @@ with mpHands.Hands(max_num_hands=1, min_detection_confidence=0.8, min_tracking_c
             # Only update servo once per second to reduce jitter
             for i, e in enumerate(angleList):
                 moveServo(e, [thumbPin, pointerPin, middlePin, ringPin, pinkyPin][i])
+                # if thumbpin is at max position (1.0 = 180 degrees), then thumbjoint should be 90
+                if thumbPin.read() >= 0.95:  # Near maximum position
+                    thumbJoint.write(90)
+                else:
+                    thumbJoint.write(180)
+            
+            # Hand rotation (use the first detected hand)
+            first_hand = results.multi_hand_landmarks[0]
+            hand_rotation = calculate_hand_rotation(first_hand.landmark)
+            # set rotation pin to hand rotation
+            rotationPin.write(hand_rotation)
+
 
             
         # Save our image    
