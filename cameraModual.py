@@ -257,9 +257,9 @@ while cap.isOpened():
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     
 
-    # Find hands# Find hands
-    img = detector.findHands(frame)
-    lmList = detector.findPosition(frame, draw=False)
+    # Find hands using the flipped image
+    image = detector.findHands(image)
+    lmList = detector.findPosition(image, draw=False)
 
     # Rendering results
     # Draw angles to image from joint list
@@ -302,7 +302,7 @@ while cap.isOpened():
         totalFingers = fingers.count(1)
         
         # Display finger count
-        cv2.putText(img, f'Fingers: {totalFingers}', (10, 70), 
+        cv2.putText(image, f'Fingers: {totalFingers}', (10, 70), 
                     cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 3)
         
     
@@ -310,11 +310,11 @@ while cap.isOpened():
     cTime = time.time()
     fps = 1 / (cTime - pTime)
     pTime = cTime
-    cv2.putText(img, f'FPS: {int(fps)}', (400, 70), 
+    cv2.putText(image, f'FPS: {int(fps)}', (400, 70), 
                 cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255), 3)
     
     # Show image
-    cv2.imshow('Hand Tracking', img)
+    cv2.imshow('Hand Tracking', image)
     
     # Break on 'q' key press
     if cv2.waitKey(10) & 0xFF == ord('q'):
