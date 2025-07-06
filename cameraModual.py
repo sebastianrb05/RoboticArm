@@ -11,7 +11,7 @@ import math
 # Define Arduino
 board = Arduino('COM3')
 
-# Define Servo
+# Define Servo pins
 thumbPin = board.digital[8]
 pointerPin = board.digital[9]
 middlePin = board.digital[10]
@@ -19,6 +19,7 @@ ringPin = board.digital[11]
 pinkyPin = board.digital[12]
 thumbJoint = board.digital[13]
 
+# Define rotation servo pin
 rotationPin = board.digital[3]
 
 # Set pins to SERVO
@@ -36,6 +37,7 @@ pointerPin.write(0)
 middlePin.write(0)
 ringPin.write(0)
 pinkyPin.write(0)
+
 #Thumb joint servo should never be out of the interval 180-90 degrees !!!
 thumbJoint.write(180)
 rotationPin.write(0)
@@ -46,12 +48,11 @@ hands = mpHands.Hands(max_num_hands=1, min_detection_confidence=0.7)
 mpDraw = mp.solutions.drawing_utils
 
 # Define Joint List
-
 tipIds = [4, 8, 12, 16, 20] # Thumb, Index, Middle, Ring, Pinky
 dipIds = [3, 7, 11, 15, 19]
 pipIds = [2, 6, 10, 14, 18]
 
-# Move servo
+# Move servo functions
 def moveServoAngle(angle, pin):
     if angle > 160:
         pin.write(0)
@@ -125,9 +126,6 @@ class HandDetector:
         Returns: [thumb, index, middle, ring, pinky] where 1=up, 0=down
         """
         fingers = []
-        
-        
-
 
         if len(self.landmarks) != 0:
             # Thumb - compare x coordinates (horizontal movement)
@@ -162,9 +160,12 @@ class HandDetector:
             angleList = []
             #Loop through joint sets 
             for joint in self.jointList:
-                a = np.array([hand.landmark[joint[0]].x, hand.landmark[joint[0]].y]) # First coord
-                b = np.array([hand.landmark[joint[1]].x, hand.landmark[joint[1]].y]) # Second coord
-                c = np.array([hand.landmark[joint[2]].x, hand.landmark[joint[2]].y]) # Third coord
+                a = np.array([hand.landmark[joint[0]].x, 
+                    hand.landmark[joint[0]].y]) # First coord
+                b = np.array([hand.landmark[joint[1]].x, 
+                    hand.landmark[joint[1]].y]) # Second coord
+                c = np.array([hand.landmark[joint[2]].x, 
+                    hand.landmark[joint[2]].y]) # Third coord
                 
                 radians = np.arctan2(c[1] - b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
                 angle = np.abs(radians*180.0/np.pi)
@@ -213,24 +214,9 @@ class HandDetector:
         
         return roll
 
-
-
-
-# Hand rotation function
-# TODO: Implement hand rotation function
-# Thoughts: check for distance in deapth between thumb and pinky, to establish partial rotation
-# or the width of the hand from side to side, and establish if back or front of the hand to see what way to rotate   
-# or i could make a CNN predicting the hand rotation and pair that with the servos from paper i found online
-# TODO: add left and right hand detection, and then use that to determine the rotation
-
-
-
 cap = cv2.VideoCapture(0)
 detector = HandDetector(maxHands=1)
 
-# Timer for servo control (check once per second)
-last_servo_update = time.time()
-servo_update_interval = 1.0  # 1 second
 
 # For FPS calculation
 pTime = 0
@@ -266,7 +252,7 @@ while cap.isOpened():
     #angleList = detector.getAngles(image, results, detector.jointList)
     
     # uses the angle list to move the servos
-    ''' Only update servo once per second to reduce jitter
+    ''' 
     for i, e in enumerate(angleList):
         moveServoAngle(e, [thumbPin, pointerPin, middlePin, ringPin, pinkyPin][i])
         # if thumbpin is at max position (1.0 = 180 degrees), then thumbjoint should be 90
@@ -292,26 +278,14 @@ while cap.isOpened():
     hand_rotation = detector.calculate_hand_rotation()
     # set rotation pin to hand rotation
     rotationPin.write(hand_rotation)
-
-
-   
-    if len(lmList) != 0:
-        # Get fingers up status
-        fingers = detector.fingersUp()
-        
-        totalFingers = fingers.count(1)
-        
-        # Display finger count
-        cv2.putText(image, f'Fingers: {totalFingers}', (10, 70), 
-                    cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 3)
         
     
     # Calculate and display FPS
-    cTime = time.time()
-    fps = 1 / (cTime - pTime)
-    pTime = cTime
-    cv2.putText(image, f'FPS: {int(fps)}', (400, 70), 
-                cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255), 3)
+    #cTime = time.time()
+    #fps = 1 / (cTime - pTime)
+    #pTime = cTime
+    #cv2.putText(image, f'FPS: {int(fps)}', (400, 70), 
+    #               cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255), 3)
     
     # Show image
     cv2.imshow('Hand Tracking', image)
@@ -322,70 +296,3 @@ while cap.isOpened():
     
 cap.release()
 cv2.destroyAllWindows()
-
-'''
-
-# TODO: override finger angles with model prediction from googles mediapipe model
-with mpHands.Hands(max_num_hands=1, min_detection_confidence=0.8, min_tracking_confidence=0.5) as hands: 
-    while cap.isOpened():
-        ret, frame = cap.read()
-        
-        # BGR 2 RGB
-        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        
-        # Flip on horizontal
-        image = cv2.flip(image, 1)
-        
-        # Set flag
-        image.flags.writeable = False
-        
-        # Detections
-        results = hands.process(image)
-        
-        # Set flag to true
-        image.flags.writeable = True
-        
-        # RGB 2 BGR
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        
-        # Rendering results
-        if results.multi_hand_landmarks:
-            for num, hand in enumerate(results.multi_hand_landmarks):
-                mpDraw.draw_landmarks(image, hand, mpHands.HAND_CONNECTIONS, 
-                                        mpDraw.DrawingSpec(color=(121, 22, 76), thickness=2, circle_radius=4),
-                                        mpDraw.DrawingSpec(color=(250, 44, 250), thickness=2, circle_radius=2),
-                                         )
-                
-                # Render left or right detection
-                
-            
-            # Draw angles to image from joint list
-            angleList = getAngles(image, results, jointList)
-            
-            # Only update servo once per second to reduce jitter
-            for i, e in enumerate(angleList):
-                moveServo(e, [thumbPin, pointerPin, middlePin, ringPin, pinkyPin][i])
-                # if thumbpin is at max position (1.0 = 180 degrees), then thumbjoint should be 90
-                if thumbPin.read() >= 0.95:  # Near maximum position
-                    thumbJoint.write(90)
-                else:
-                    thumbJoint.write(180)
-            
-            # Hand rotation (use the first detected hand)
-            first_hand = results.multi_hand_landmarks[0]
-            hand_rotation = calculate_hand_rotation(first_hand.landmark)
-            # set rotation pin to hand rotation
-            rotationPin.write(hand_rotation)
-
-
-            
-        # Save our image    
-        #cv2.imwrite(os.path.join('Output Images', '{}.jpg'.format(uuid.uuid1())), image)
-        cv2.imshow('Hand Tracking', image)
-
-        if cv2.waitKey(10) & 0xFF == ord('q'):
-            break
-
-cap.release()
-cv2.destroyAllWindows()
-'''
