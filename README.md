@@ -2,7 +2,7 @@
 A real-time hand gesture recognition system that controls a physical robotic arm using computer vision. Simply show your hand to the camera and watch as the robotic arm mimics your finger movements and hand rotation!
 
 ![Demo](demo/demo.gif)
-![image](demo/arm.jpg)
+
 **[📹 Watch Full Demo Video](demo/examplevideo.mp4)**
 
 
@@ -72,3 +72,5 @@ python cameraModual.py
 Hand Model Used For This Project: https://www.thingiverse.com/thing:2269115
 
 I redesigned the forearm and baseplate to better suit my needs, and added an extra servo to enable independent control of the pinky and ring fingers.
+
+![image](demo/arm.jpg)
