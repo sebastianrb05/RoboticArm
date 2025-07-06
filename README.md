@@ -1,9 +1,10 @@
 # Hand-Tracking Robotic Arm
 A real-time hand gesture recognition system that controls a physical robotic arm using computer vision. Simply show your hand to the camera and watch as the robotic arm mimics your finger movements and hand rotation!
 
-![Hand Tracking Demo](demo/examplevideo.mp4)
-
+![Demo](demo/demo.gif)
 ![image](demo/arm.jpg)
+**[📹 Watch Full Demo Video](demo/examplevideo.mp4)**
+
 
 ## How It's Made:
 
